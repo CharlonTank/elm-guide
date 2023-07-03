@@ -1,7 +1,14 @@
-# elm-guide
+# Demo
 
-1.[https://ellie-app.com/nfyF2z2W49ca1](https://ellie-app.com/nfz4vQMBLCRa1)
+1.[Syntax checker - counter](https://ellie-app.com/nfz4vQMBLCRa1)
 
-2.[https://ellie-app.com/nfyTtnZqx79a1](https://ellie-app.com/nfyYjmrsT6va1)
+2.[Mob-Programming - Demo](https://ellie-app.com/nfyYjmrsT6va1)
 
-3.
+# Mob-Programming session
+
+1. [Exercice 1] 
+
+# More
+
+
+1. [Official guide:](https://guide.elm-lang.org/)
