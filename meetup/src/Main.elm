@@ -1,175 +1,140 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, button, div, text)
-import Html.Attributes exposing (disabled)
+import Html exposing (..)
+import Html.Attributes exposing (src, style)
 import Html.Events exposing (onClick)
-
-
-type alias Counter =
-    { count : Int
-    , lastMsg : Maybe Msg
-    , step : Int
-    , history : List Int
-    }
+import Http
+import Json.Decode as Decode
+import Json.Decode.Pipeline exposing (required)
+import RemoteData exposing (RemoteData(..), WebData)
 
 
 type alias Model =
-    List Counter
+    { quote : WebData Quote
+    , catImage : WebData String
+    }
 
 
-init : Model
-init =
-    [ { count = 0
-      , lastMsg = Nothing
-      , step = 1
-      , history = []
+init : () -> ( Model, Cmd Msg )
+init _ =
+    ( { quote = NotAsked
+      , catImage = NotAsked
       }
-    ]
+    , Cmd.batch [ getRandomQuote, getRandomImage ]
+    )
 
 
 type Msg
-    = Plus1 Int
-    | Minus1 Int
-    | Reset Int
-    | SetStep Int Int
-    | Undo Int
-    | NewCounter
+    = FetchQuote
+    | GotQuote (Result Http.Error Quote)
+    | FetchImage
+    | GotImage (Result Http.Error String)
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Plus1 id ->
-            List.indexedMap updateCounter model
-                |> List.map
-                    (\( index, counter ) ->
-                        if index == id then
-                            { counter | count = counter.count + counter.step, history = counter.count :: counter.history, lastMsg = Just (Plus1 id) }
+        FetchQuote ->
+            ( { model | quote = Loading }, getRandomQuote )
 
-                        else
-                            counter
-                    )
+        GotQuote newQuote ->
+            ( { model | quote = RemoteData.fromResult newQuote }, Cmd.none )
 
-        Minus1 id ->
-            List.indexedMap updateCounter model
-                |> List.map
-                    (\( index, counter ) ->
-                        if index == id then
-                            { counter | count = counter.count - counter.step, history = counter.count :: counter.history, lastMsg = Just (Minus1 id) }
+        FetchImage ->
+            ( { model | catImage = Loading }, getRandomImage )
 
-                        else
-                            counter
-                    )
-
-        Reset id ->
-            List.indexedMap updateCounter model
-                |> List.map
-                    (\( index, counter ) ->
-                        if index == id then
-                            { counter | count = 0, history = [], lastMsg = Just (Reset id) }
-
-                        else
-                            counter
-                    )
-
-        SetStep id newStep ->
-            List.indexedMap updateCounter model
-                |> List.map
-                    (\( index, counter ) ->
-                        if index == id then
-                            { counter | step = newStep }
-
-                        else
-                            counter
-                    )
-
-        Undo id ->
-            List.indexedMap updateCounter model
-                |> List.map
-                    (\( index, counter ) ->
-                        if index == id then
-                            case counter.history of
-                                [] ->
-                                    counter
-
-                                h :: t ->
-                                    { counter | count = h, history = t }
-
-                        else
-                            counter
-                    )
-
-        NewCounter ->
-            model ++ [ { count = 0, lastMsg = Nothing, step = 1, history = [] } ]
+        GotImage newImage ->
+            ( { model | catImage = RemoteData.fromResult newImage }, Cmd.none )
 
 
-updateCounter : Int -> a -> ( Int, a )
-updateCounter index counter =
-    ( index, counter )
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Sub.none
 
 
 view : Model -> Html Msg
 view model =
     div []
-        (List.indexedMap viewCounter model
-            ++ [ button [ onClick NewCounter ] [ text "Add new counter" ] ]
-        )
-
-
-viewCounter : Int -> Counter -> Html Msg
-viewCounter id counter =
-    div []
-        [ div [] [ text ("Counter: " ++ String.fromInt counter.count) ]
-        , button [ onClick (Plus1 id), disabled (counter.count >= 100) ] [ text ("+" ++ String.fromInt counter.step) ]
-        , button [ onClick (Minus1 id), disabled (counter.count <= 0) ] [ text ("-" ++ String.fromInt counter.step) ]
-        , button [ onClick (Reset id) ] [ text "Reset" ]
-        , div [] [ text ("Step: " ++ String.fromInt counter.step) ]
-        , div [] [ text ("History: " ++ (List.map String.fromInt counter.history |> List.reverse |> String.join ", ")) ]
-        , button [ onClick (Undo id), disabled (List.isEmpty counter.history) ] [ text "Undo" ]
-        , displayLastMsg counter.lastMsg
+        [ h2 [] [ text "Random Quotes" ]
+        , button [ onClick FetchQuote, onClick FetchImage ] [ text "Fetch New Data" ]
+        , viewData model.quote model.catImage
         ]
 
 
-displayLastMsg : Maybe Msg -> Html Msg
-displayLastMsg maybeMsg =
-    div []
-        [ text <|
-            case maybeMsg of
-                Just msg ->
-                    "Last message: " ++ msgToText msg
+viewData : WebData Quote -> WebData String -> Html Msg
+viewData quoteData imageData =
+    case ( quoteData, imageData ) of
+        ( Loading, _ ) ->
+            text "Loading quote..."
 
-                Nothing ->
-                    "No last message"
-        ]
+        ( _, Loading ) ->
+            text "Loading image..."
+
+        ( Success quote, Success imageUrl ) ->
+            div []
+                [ blockquote [] [ text quote.quote ]
+                , p [ style "text-align" "right" ]
+                    [ text "— "
+                    , cite [] [ text quote.source ]
+                    , text (" by " ++ quote.author ++ " (" ++ String.fromInt quote.year ++ ")")
+                    ]
+                , img [ src imageUrl ] []
+                ]
+
+        ( Failure _, _ ) ->
+            text "Failed to load quote."
+
+        ( _, Failure _ ) ->
+            text "Failed to load image."
+
+        _ ->
+            text "Nothing to display."
 
 
-msgToText : Msg -> String
-msgToText msg =
-    case msg of
-        Plus1 _ ->
-            "Plus1"
+type alias Quote =
+    { quote : String
+    , source : String
+    , author : String
+    , year : Int
+    }
 
-        Minus1 _ ->
-            "Minus1"
 
-        Reset _ ->
-            "Reset"
+quoteDecoder : Decode.Decoder Quote
+quoteDecoder =
+    Decode.succeed Quote
+        |> required "quote" Decode.string
+        |> required "source" Decode.string
+        |> required "author" Decode.string
+        |> required "year" Decode.int
 
-        SetStep _ _ ->
-            "SetStep"
 
-        Undo _ ->
-            "Undo"
+imageDecoder : Decode.Decoder String
+imageDecoder =
+    Decode.at [ "0", "url" ] Decode.string
 
-        NewCounter ->
-            "NewCounter"
+
+getRandomQuote : Cmd Msg
+getRandomQuote =
+    Http.get
+        { url = "https://elm-lang.org/api/random-quotes"
+        , expect = Http.expectJson GotQuote quoteDecoder
+        }
+
+
+getRandomImage : Cmd Msg
+getRandomImage =
+    Http.get
+        { url = "https://api.thecatapi.com/v1/images/search?size=full"
+        , expect = Http.expectJson GotImage imageDecoder
+        }
 
 
 main : Program () Model Msg
 main =
-    Browser.sandbox
+    Browser.element
         { init = init
-        , update = update
         , view = view
+        , update = update
+        , subscriptions = subscriptions
         }
