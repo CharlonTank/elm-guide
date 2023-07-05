@@ -1,94 +1,171 @@
 module Main exposing (main)
 
-{-| These are the imports we need to make the app work.
--}
-
 import Browser
 import Html exposing (Html, button, div, text)
+import Html.Attributes exposing (disabled)
 import Html.Events exposing (onClick)
 
 
-{-| What we are building? Data schema called Model.
--- kinda like a json schema.
-<https://guide.elm-lang.org/types/type_aliases.html>
-<https://package.elm-lang.org/packages/elm/core/1.0.5/Maybe#Maybe>
--}
-type alias Model =
+type alias Counter =
     { count : Int
     , lastMsg : Maybe Msg
+    , step : Int
+    , history : List Int
     }
 
 
-{-| Initial state of the app when the page loads.
--- kinda like a json object.
-<https://package.elm-lang.org/packages/elm/core/1.0.5/Maybe#Maybe>
--}
+type alias Model =
+    List Counter
+
+
 init : Model
 init =
-    { count = 42
-    , lastMsg = Nothing
-    }
+    [ { count = 0
+      , lastMsg = Nothing
+      , step = 1
+      , history = []
+      }
+    ]
 
 
-{-| Messages are the actions that can be performed on the app.
--- kinda like an enum.
-<https://guide.elm-lang.org/types/custom_types.html>
--}
 type Msg
-    = Plus1
-    | Minus1
+    = Plus1 Int
+    | Minus1 Int
+    | Reset Int
+    | SetStep Int Int
+    | Undo Int
+    | NewCounter
 
 
-{-| Update function takes a message and the current model and returns a new model.
-pattern matching on the message
-<https://guide.elm-lang.org/types/pattern_matching.html>
--}
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        Plus1 ->
-            { model | count = model.count + 1, lastMsg = Just Plus1 }
+        Plus1 id ->
+            List.indexedMap updateCounter model
+                |> List.map
+                    (\( index, counter ) ->
+                        if index == id then
+                            { counter | count = counter.count + counter.step, history = counter.count :: counter.history, lastMsg = Just (Plus1 id) }
 
-        Minus1 ->
-            { model | count = model.count - 1, lastMsg = Just Minus1 }
+                        else
+                            counter
+                    )
+
+        Minus1 id ->
+            List.indexedMap updateCounter model
+                |> List.map
+                    (\( index, counter ) ->
+                        if index == id then
+                            { counter | count = counter.count - counter.step, history = counter.count :: counter.history, lastMsg = Just (Minus1 id) }
+
+                        else
+                            counter
+                    )
+
+        Reset id ->
+            List.indexedMap updateCounter model
+                |> List.map
+                    (\( index, counter ) ->
+                        if index == id then
+                            { counter | count = 0, history = [], lastMsg = Just (Reset id) }
+
+                        else
+                            counter
+                    )
+
+        SetStep id newStep ->
+            List.indexedMap updateCounter model
+                |> List.map
+                    (\( index, counter ) ->
+                        if index == id then
+                            { counter | step = newStep }
+
+                        else
+                            counter
+                    )
+
+        Undo id ->
+            List.indexedMap updateCounter model
+                |> List.map
+                    (\( index, counter ) ->
+                        if index == id then
+                            case counter.history of
+                                [] ->
+                                    counter
+
+                                h :: t ->
+                                    { counter | count = h, history = t }
+
+                        else
+                            counter
+                    )
+
+        NewCounter ->
+            model ++ [ { count = 0, lastMsg = Nothing, step = 1, history = [] } ]
 
 
-{-| View function takes the current model and returns the html to be rendered.
--- <https://package.elm-lang.org/packages/elm/html/latest/>
--}
+updateCounter : Int -> a -> ( Int, a )
+updateCounter index counter =
+    ( index, counter )
+
+
 view : Model -> Html Msg
 view model =
     div []
-        [ div [] [ text (String.fromInt model.count) ]
-        , button [ onClick Plus1 ] [ text "+1" ]
-        , button [ onClick Minus1 ] [ text "-1" ]
-        , displayLastMsg model.lastMsg
+        (List.indexedMap viewCounter model
+            ++ [ button [ onClick NewCounter ] [ text "Add new counter" ] ]
+        )
+
+
+viewCounter : Int -> Counter -> Html Msg
+viewCounter id counter =
+    div []
+        [ div [] [ text ("Counter: " ++ String.fromInt counter.count) ]
+        , button [ onClick (Plus1 id), disabled (counter.count >= 100) ] [ text ("+" ++ String.fromInt counter.step) ]
+        , button [ onClick (Minus1 id), disabled (counter.count <= 0) ] [ text ("-" ++ String.fromInt counter.step) ]
+        , button [ onClick (Reset id) ] [ text "Reset" ]
+        , div [] [ text ("Step: " ++ String.fromInt counter.step) ]
+        , div [] [ text ("History: " ++ (List.map String.fromInt counter.history |> List.reverse |> String.join ", ")) ]
+        , button [ onClick (Undo id), disabled (List.isEmpty counter.history) ] [ text "Undo" ]
+        , displayLastMsg counter.lastMsg
         ]
 
 
-{-| Helper function to display the last message
-<https://guide.elm-lang.org/types/pattern_matching.html>
-<https://package.elm-lang.org/packages/elm/core/1.0.5/Maybe#Maybe>
--}
 displayLastMsg : Maybe Msg -> Html Msg
 displayLastMsg maybeMsg =
     div []
         [ text <|
             case maybeMsg of
-                Just Plus1 ->
-                    "Plus1"
-
-                Just Minus1 ->
-                    "Minus1"
+                Just msg ->
+                    "Last message: " ++ msgToText msg
 
                 Nothing ->
                     "No last message"
         ]
 
 
-{-| This is the main function that starts the app
-<https://package.elm-lang.org/packages/elm/browser/latest/Browser#sandbox>
--}
+msgToText : Msg -> String
+msgToText msg =
+    case msg of
+        Plus1 _ ->
+            "Plus1"
+
+        Minus1 _ ->
+            "Minus1"
+
+        Reset _ ->
+            "Reset"
+
+        SetStep _ _ ->
+            "SetStep"
+
+        Undo _ ->
+            "Undo"
+
+        NewCounter ->
+            "NewCounter"
+
+
 main : Program () Model Msg
 main =
     Browser.sandbox
