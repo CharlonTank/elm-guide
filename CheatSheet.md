@@ -126,6 +126,63 @@ main =
 
 This architecture is explained in detail in the [Elm guide](https://guide.elm-lang.org/architecture/).
 
+## Elm REPL
+
+Elm REPL (Read-Evaluate-Print-Loop) helps in testing individual Elm expressions by running them on an interactive command line tool.
+
+```bash
+$ elm repl
+> 1 + 1
+2 : number
+> "Hello" ++ " " ++ "World"
+"Hello World" : String
+> List.length [1, 2, 3]
+3 : Int
+```
+
+Quit the REPL session by pressing `Ctrl + D`.
+
+## Debug Tool
+
+Elm's Debug tool provides assistance in tracing application data flow and logging variables and expressions to the debugging console.
+
+```elm
+import Debug
+
+update : Msg -> Model -> Model
+update msg model =
+    let
+        _ = Debug.log "A debug message" model
+    in
+    model
+```
+
+You can also implement placeholders in your program using `Debug.todo`. This function allows you to concentrate initially on the core application logic and handle the specific edge cases later.
+
+When the program execution reaches a `Debug.todo`, it will deliberately trigger a runtime error. `Debug.todo` should only be used during development and should not exist in your production code.
+
+```elm
+import Debug
+
+update : Msg -> Model -> Model
+update msg model =
+    case msg of
+        Increment ->
+            model + 1
+        _ ->
+            Debug.todo "Handle other messages later"
+```
+
+Elm facilitates time-travel debugging, allowing you to trace any execution by rewinding and reviewing the application's state through its previous stages. This feature can be enabled using the `--debug` flag.
+
+```bash
+$ elm make src/Main.elm --debug
+```
+
+When using the `--optimize` flag for your production code, any Debug call will make your deployment fail.
+
+For a more detailed exploration, have a look at the official [Debug](https://package.elm-lang.org/packages/elm/core/latest/Debug) documentation.
+
 ## Core Language Features
 
 Elm's core features include:
