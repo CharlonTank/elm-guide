@@ -126,7 +126,15 @@ main =
 
 This architecture is explained in detail in the [Elm guide](https://guide.elm-lang.org/architecture/).
 
+## Elm Packages
+
+Elm packages are available on [package.elm-lang.org](https://package.elm-lang.org/). You can install them using the `elm install` command.
+
+`````bash
+
 ## Elm REPL
+
+````bash
 
 Elm REPL (Read-Evaluate-Print-Loop) helps in testing individual Elm expressions by running them on an interactive command line tool.
 
@@ -138,7 +146,7 @@ $ elm repl
 "Hello World" : String
 > List.length [1, 2, 3]
 3 : Int
-```
+`````
 
 Quit the REPL session by pressing `Ctrl + D`.
 
@@ -197,13 +205,11 @@ Elm's core features include:
 
 For more details, read the [Elm guide's introduction](https://guide.elm-lang.org/introduction/).
 
-## More
+## Next steps
 
 Elm has an active package ecosystem. You can find libraries for everything from parsing JSON to handling drag-and-drop in the [Elm package catalog](https://package.elm-lang.org/). It's worth exploring once you've got the basics down.
 
-The [official Elm guide](https://guide.elm-lang.org/) and the [Elm documentation](https://elm-lang.org/docs) are both excellent resources for further learning. There's also a friendly and helpful community around Elm, which you can join on the [Elm Discourse](https://discourse.elm-lang.org/) and the [Elm Slack](https://elmlang.herokuapp.com/).
-
-Happy coding with Elm!
+[Official next steps](https://guide.elm-lang.org/next_steps.html)
 
 ## Learning Materials
 
@@ -214,11 +220,12 @@ Start your Elm journey with these educational resources:
 - [Elm Weekly](https://www.elmweekly.nl/): A weekly newsletter that keeps you updated with the latest news and developments in the Elm ecosystem.
 - [Elm Radio](https://elm-radio.com/): A podcast where the hosts discuss Elm topics, packages, and techniques.
 
-## Community
+## Friendly and helpful community around Elm
 
 Connect, ask questions, and learn from fellow Elm users through these community platforms:
 
 - [Incremental Elm Discord](https://discord.gg/Qvjxsmwt): A Discord server where you can interact with other Elm enthusiasts and learn incrementally.
+- [Elm Slack](https://elm-lang.org/community/slack): A Slack community for Elm users.
 - [Elm Discourse](https://discourse.elm-lang.org/): An active forum for discussions, questions, and community interaction around Elm.
 - [Elm Subreddit](https://www.reddit.com/r/elm/): A Reddit community filled with discussions, resources, and news related to Elm.
 

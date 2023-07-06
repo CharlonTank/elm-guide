@@ -2,7 +2,7 @@ module Main exposing (main)
 
 import Browser
 import Html exposing (..)
-import Html.Attributes exposing (src, style)
+import Html.Attributes exposing (disabled, src, style)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode as Decode
@@ -12,40 +12,36 @@ import RemoteData exposing (RemoteData(..), WebData)
 
 type alias Model =
     { quote : WebData Quote
-    , catImage : WebData String
+    , cat : WebData Cat
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( { quote = NotAsked
-      , catImage = NotAsked
+      , cat = NotAsked
       }
-    , Cmd.batch [ getRandomQuote, getRandomImage ]
+    , Cmd.batch [ getRandomQuote, getRandomCat ]
     )
 
 
 type Msg
-    = FetchQuote
+    = Fetch
     | GotQuote (Result Http.Error Quote)
-    | FetchImage
-    | GotImage (Result Http.Error String)
+    | GotCat (Result Http.Error Cat)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        FetchQuote ->
-            ( { model | quote = Loading }, getRandomQuote )
+        Fetch ->
+            ( { model | quote = Loading, cat = Loading }, Cmd.batch [ getRandomQuote, getRandomCat ] )
 
         GotQuote newQuote ->
             ( { model | quote = RemoteData.fromResult newQuote }, Cmd.none )
 
-        FetchImage ->
-            ( { model | catImage = Loading }, getRandomImage )
-
-        GotImage newImage ->
-            ( { model | catImage = RemoteData.fromResult newImage }, Cmd.none )
+        GotCat newCat ->
+            ( { model | cat = RemoteData.fromResult newCat }, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
@@ -57,21 +53,19 @@ view : Model -> Html Msg
 view model =
     div []
         [ h2 [] [ text "Random Quotes" ]
-        , button [ onClick FetchQuote, onClick FetchImage ] [ text "Fetch New Data" ]
-        , viewData model.quote model.catImage
+        , button [ onClick Fetch, disabled (isLoading model) ] [ text "Fetch New Data" ]
+        , viewData model.quote
+        , viewCat model.cat
         ]
 
 
-viewData : WebData Quote -> WebData String -> Html Msg
-viewData quoteData imageData =
-    case ( quoteData, imageData ) of
-        ( Loading, _ ) ->
+viewData : WebData Quote -> Html Msg
+viewData quoteData =
+    case quoteData of
+        Loading ->
             text "Loading quote..."
 
-        ( _, Loading ) ->
-            text "Loading image..."
-
-        ( Success quote, Success imageUrl ) ->
+        Success quote ->
             div []
                 [ blockquote [] [ text quote.quote ]
                 , p [ style "text-align" "right" ]
@@ -79,17 +73,35 @@ viewData quoteData imageData =
                     , cite [] [ text quote.source ]
                     , text (" by " ++ quote.author ++ " (" ++ String.fromInt quote.year ++ ")")
                     ]
-                , img [ src imageUrl ] []
                 ]
 
-        ( Failure _, _ ) ->
+        Failure _ ->
             text "Failed to load quote."
 
-        ( _, Failure _ ) ->
-            text "Failed to load image."
+        _ ->
+            text ""
+
+
+isLoading : Model -> Bool
+isLoading model =
+    model.cat == Loading || model.quote == Loading
+
+
+viewCat : WebData Cat -> Html Msg
+viewCat catData =
+    case catData of
+        Loading ->
+            text "Loading cat..."
+
+        Success cat ->
+            div []
+                [ img [ src cat.url ] [] ]
+
+        Failure err ->
+            text ("Failed to load cat." ++ httpErrorToString err)
 
         _ ->
-            text "Nothing to display."
+            text ""
 
 
 type alias Quote =
@@ -97,6 +109,14 @@ type alias Quote =
     , source : String
     , author : String
     , year : Int
+    }
+
+
+type alias Cat =
+    { id : String
+    , url : String
+    , width : Int
+    , height : Int
     }
 
 
@@ -109,9 +129,13 @@ quoteDecoder =
         |> required "year" Decode.int
 
 
-imageDecoder : Decode.Decoder String
-imageDecoder =
-    Decode.at [ "0", "url" ] Decode.string
+catDecoder : Decode.Decoder Cat
+catDecoder =
+    Decode.succeed Cat
+        |> required "id" Decode.string
+        |> required "url" Decode.string
+        |> required "width" Decode.int
+        |> required "height" Decode.int
 
 
 getRandomQuote : Cmd Msg
@@ -122,11 +146,11 @@ getRandomQuote =
         }
 
 
-getRandomImage : Cmd Msg
-getRandomImage =
+getRandomCat : Cmd Msg
+getRandomCat =
     Http.get
-        { url = "https://api.thecatapi.com/v1/images/search?size=full"
-        , expect = Http.expectJson GotImage imageDecoder
+        { url = "https://api.thecatapi.com/v1/images/search?size%253Dfull"
+        , expect = Http.expectJson GotCat (Decode.index 0 catDecoder)
         }
 
 
@@ -138,3 +162,22 @@ main =
         , update = update
         , subscriptions = subscriptions
         }
+
+
+httpErrorToString : Http.Error -> String
+httpErrorToString error =
+    case error of
+        Http.BadUrl url ->
+            "Bad URL: " ++ url
+
+        Http.Timeout ->
+            "Request timed out."
+
+        Http.NetworkError ->
+            "Network error."
+
+        Http.BadStatus code ->
+            "Bad status code: " ++ String.fromInt code
+
+        Http.BadBody msg ->
+            "Bad body: " ++ msg
