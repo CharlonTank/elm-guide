@@ -6,7 +6,6 @@ From now on, we will use [Ellie](https://ellie-app.com/) to write Elm code.
 
 You can open the [cheatsheet](https://github.com/CharlonTank/elm-guide/blob/main/CheatSheet.md) I created but I advise you to also open the official documentation: [Elm documentation](https://guide.elm-lang.org/). There is also a [French Version of the official Doc](https://guide.elm-france.fr/) and a [French version of my cheatsheet](https://github.com/CharlonTank/elm-guide/blob/main/CheatSheet%20-%20Fran%C3%A7ais.md)
 
-The official documentation is also in french
 ### Exercice 1 - Improve the counter
 
 - Open this link: [Basic counter](https://ellie-app.com/ng6kbB5Lj8Ha1)
