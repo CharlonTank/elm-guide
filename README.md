@@ -1,3 +1,5 @@
+## Welcome Everyone ❤️
+
 ### Mob Programming - Elm
 
 From now on, we will use [Ellie](https://ellie-app.com/) to write Elm code.
