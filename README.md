@@ -113,7 +113,7 @@ You can open the [cheatsheet](https://github.com/CharlonTank/elm-guide/blob/main
           img [ src "https://www.example.com/cat.jpg" ] []
       ```
 
-[Correction Code Exercice 3](https://ellie-app.com/nhnnGt35bdFa1)
+[Correction Code Exercice 3](https://ellie-app.com/nhNrkYFzmY2a1)
 
 ### I hope you enjoyed this workshop! Don't hesitate to reach out to me if you have any questions!
 
